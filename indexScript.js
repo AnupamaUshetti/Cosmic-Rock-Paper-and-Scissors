@@ -4,7 +4,18 @@
     currentRound: 1,
     playerScore: 0,
     computerScore: 0,
-    draws: 0
+    draws: 0,
+    playerChoices: {
+        rock: 0,
+        paper: 0,
+        scissors: 0
+    },
+    computerChoices: {
+        rock: 0,
+        paper: 0,
+        scissors: 0
+    },
+    roundHistory: []
 };
 
 // DOM elements
@@ -26,7 +37,18 @@ const finalResult = document.querySelector('.final-result');
 const victoriesDisplay = document.getElementById('victories');
 const defeatsDisplay = document.getElementById('defeats');
 const drawsDisplay = document.getElementById('draws');
+const winRateDisplay = document.getElementById('win-rate');
+const rockStatsDisplay = document.getElementById('rock-stats');
+const paperStatsDisplay = document.getElementById('paper-stats');
+const scissorsStatsDisplay = document.getElementById('scissors-stats');
+const resultDetailsDisplay = document.getElementById('result-details');
 const playAgainBtn = document.querySelector('.play-again-btn');
+const winBar = document.getElementById('win-bar');
+const loseBar = document.getElementById('lose-bar');
+const drawBar = document.getElementById('draw-bar');
+const winValue = document.getElementById('win-value');
+const loseValue = document.getElementById('lose-value');
+const drawValue = document.getElementById('draw-value');
 
 // Choice emojis
 const choiceEmojis = {
@@ -64,19 +86,40 @@ function createStars() {
     }
 }
 
-// Start game
-startBtn.addEventListener('click', () => {
-    gameState.totalRounds = parseInt(attemptsInput.value) || 5;
+// Reset game state
+function resetGameState() {
     gameState.currentRound = 1;
     gameState.playerScore = 0;
     gameState.computerScore = 0;
     gameState.draws = 0;
+    gameState.playerChoices = {
+        rock: 0,
+        paper: 0,
+        scissors: 0
+    };
+    gameState.computerChoices = {
+        rock: 0,
+        paper: 0,
+        scissors: 0
+    };
+    gameState.roundHistory = [];
+}
+
+// Start game
+startBtn.addEventListener('click', () => {
+    gameState.totalRounds = parseInt(attemptsInput.value) || 5;
+    resetGameState();
     
     // Update UI
     totalRoundsDisplay.textContent = gameState.totalRounds;
     currentRoundDisplay.textContent = gameState.currentRound;
     playerScoreDisplay.textContent = gameState.playerScore;
     computerScoreDisplay.textContent = gameState.computerScore;
+    
+    // Reset battle area
+    playerChoiceDisplay.textContent = '';
+    computerChoiceDisplay.textContent = '';
+    roundResult.textContent = '';
     
     // Show game screen
     setupScreen.style.display = 'none';
@@ -94,6 +137,10 @@ choices.forEach(choice => {
         const choices = ['rock', 'paper', 'scissors'];
         const computerChoice = choices[Math.floor(Math.random() * choices.length)];
         
+        // Track choices
+        gameState.playerChoices[playerChoice]++;
+        gameState.computerChoices[computerChoice]++;
+        
         // Display choices
         playerChoiceDisplay.textContent = choiceEmojis[playerChoice];
         computerChoiceDisplay.textContent = choiceEmojis[computerChoice];
@@ -104,6 +151,14 @@ choices.forEach(choice => {
         
         // Determine the winner
         const result = determineWinner(playerChoice, computerChoice);
+        
+        // Store round result
+        gameState.roundHistory.push({
+            round: gameState.currentRound,
+            playerChoice,
+            computerChoice,
+            result
+        });
         
         // Update UI based on result
         if (result === 'win') {
@@ -188,6 +243,72 @@ function showResults() {
     victoriesDisplay.textContent = gameState.playerScore;
     defeatsDisplay.textContent = gameState.computerScore;
     drawsDisplay.textContent = gameState.draws;
+    
+    // Calculate win rate
+    const winRate = (gameState.playerScore / gameState.totalRounds * 100).toFixed(1);
+    winRateDisplay.textContent = `${winRate}%`;
+    
+    // Update choice statistics
+    rockStatsDisplay.textContent = `Used: ${gameState.playerChoices.rock} times`;
+    paperStatsDisplay.textContent = `Used: ${gameState.playerChoices.paper} times`;
+    scissorsStatsDisplay.textContent = `Used: ${gameState.playerChoices.scissors} times`;
+    
+    // Create detailed summary
+    let mostUsedChoice = 'none';
+    let maxCount = 0;
+    for (const [choice, count] of Object.entries(gameState.playerChoices)) {
+        if (count > maxCount) {
+            maxCount = count;
+            mostUsedChoice = choice;
+        }
+    }
+    
+    // Generate summary text
+    let summaryText = `You played ${gameState.totalRounds} rounds against the computer. `;
+    
+    if (gameState.playerScore > gameState.computerScore) {
+        summaryText += `Congratulations! You won the battle with ${gameState.playerScore} victories versus ${gameState.computerScore} defeats. `;
+    } else if (gameState.playerScore < gameState.computerScore) {
+        summaryText += `Unfortunately, you lost the battle with ${gameState.playerScore} victories versus ${gameState.computerScore} defeats. `;
+    } else {
+        summaryText += `The battle ended in a draw with ${gameState.playerScore} victories each. `;
+    }
+    
+    if (maxCount > 0) {
+        summaryText += `Your favorite weapon was ${mostUsedChoice} which you used ${maxCount} times. `;
+    }
+    
+    // Add a fun fact
+    if (gameState.draws > gameState.totalRounds * 0.3) {
+        summaryText += "You had a high number of draws - great minds think alike!";
+    } else if (gameState.playerScore > gameState.totalRounds * 0.7) {
+        summaryText += "Wow! You dominated this game. You're a natural strategist!";
+    } else if (gameState.computerScore > gameState.totalRounds * 0.7) {
+        summaryText += "The computer was on fire today! Better luck next time!";
+    }
+    
+    resultDetailsDisplay.textContent = summaryText;
+    
+    // Update the bar chart
+    const maxHeight = 180; // Maximum height for bars
+    const maxValue = Math.max(gameState.playerScore, gameState.computerScore, gameState.draws);
+    
+    // Calculate heights based on values
+    const winHeight = maxValue > 0 ? (gameState.playerScore / maxValue) * maxHeight : 0;
+    const loseHeight = maxValue > 0 ? (gameState.computerScore / maxValue) * maxHeight : 0;
+    const drawHeight = maxValue > 0 ? (gameState.draws / maxValue) * maxHeight : 0;
+    
+    // Set chart values
+    winValue.textContent = gameState.playerScore;
+    loseValue.textContent = gameState.computerScore;
+    drawValue.textContent = gameState.draws;
+    
+    // Animate the bars
+    setTimeout(() => {
+        winBar.style.height = `${winHeight}px`;
+        loseBar.style.height = `${loseHeight}px`;
+        drawBar.style.height = `${drawHeight}px`;
+    }, 100);
     
     // Determine final result message
     if (gameState.playerScore > gameState.computerScore) {
