@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Rock Paper Scissors</title>
+</head>
+<body>
+    <div class="stars"></div>
+    
+    <div class="container">
+        <h1 class="game-title">Cosmic Rock Paper Scissors</h1>
+        
+        <!-- Setup Screen -->
+        <div class="setup-screen">
+            <h2>How many rounds would you like to play?</h2>
+            <div class="attempts-input">
+                <input type="number" id="attempts" min="1" max="20" value="5">
+            </div>
+            <button class="start-btn">Start the Battle</button>
+        </div>
+        
+        <!-- Game Screen -->
+        <div class="game-screen">
+            <div class="game-info">
+                <div class="rounds-info">Round: <span id="current-round">1</span>/<span id="total-rounds">5</span></div>
+                <div class="score-info">Score: <span id="player-score">0</span> - <span id="computer-score">0</span></div>
+            </div>
+            
+            <div class="game-prompt">Choose your weapon!</div>
+            
+            <div class="choices">
+                <div class="choice" data-choice="rock">🪨</div>
+                <div class="choice" data-choice="paper">📄</div>
+                <div class="choice" data-choice="scissors">✂️</div>
+            </div>
+            
+            <div class="battle-area">
+                <div class="player-choice"></div>
+                <div class="versus">VS</div>
+                <div class="computer-choice"></div>
+            </div>
+            
+            <div class="round-result"></div>
+            
+            <button class="next-btn" style="display: none;">Next Round</button>
+        </div>
+        
+        <!-- Result Screen -->
+        <div class="result-screen">
+            <h2>Battle Results</h2>
+            <div class="final-result">You Won!</div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div>Victories</div>
+                    <div class="stat-value" id="victories">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Defeats</div>
+                    <div class="stat-value" id="defeats">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Draws</div>
+                    <div class="stat-value" id="draws">0</div>
+                </div>
+            </div>
+            
+            <button class="play-again-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+       
+    </script>
+</body>
+</html>
