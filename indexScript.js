@@ -1,5 +1,5 @@
- // Game state
- const gameState = {
+// Game state
+const gameState = {
     totalRounds: 5,
     currentRound: 1,
     playerScore: 0,
@@ -28,7 +28,6 @@ const choices = document.querySelectorAll('.choice');
 const playerChoiceDisplay = document.querySelector('.player-choice');
 const computerChoiceDisplay = document.querySelector('.computer-choice');
 const roundResult = document.querySelector('.round-result');
-const nextBtn = document.querySelector('.next-btn');
 const currentRoundDisplay = document.getElementById('current-round');
 const totalRoundsDisplay = document.getElementById('total-rounds');
 const playerScoreDisplay = document.getElementById('player-score');
@@ -49,6 +48,44 @@ const drawBar = document.getElementById('draw-bar');
 const winValue = document.getElementById('win-value');
 const loseValue = document.getElementById('lose-value');
 const drawValue = document.getElementById('draw-value');
+const cosmicMessageDisplay = document.createElement('div');
+
+// Set up cosmic message element
+cosmicMessageDisplay.className = 'cosmic-message';
+cosmicMessageDisplay.style.fontSize = '1.3rem';
+cosmicMessageDisplay.style.textAlign = 'center';
+cosmicMessageDisplay.style.marginTop = '1.5rem';
+cosmicMessageDisplay.style.padding = '1rem';
+cosmicMessageDisplay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+cosmicMessageDisplay.style.borderRadius = '10px';
+cosmicMessageDisplay.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.3)';
+cosmicMessageDisplay.style.animation = 'glow 2s infinite alternate';
+
+// Add styles for the glow animation
+const styleElement = document.createElement('style');
+styleElement.textContent = `
+@keyframes glow {
+  from {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 20px rgba(65, 105, 225, 0.3);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 30px rgba(65, 105, 225, 0.5);
+  }
+}
+
+@keyframes twinkle {
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+.star-emoji {
+  display: inline-block;
+  animation: twinkle 1.5s infinite;
+  animation-delay: calc(var(--delay) * 0.5s);
+}
+`;
+document.head.appendChild(styleElement);
 
 // Choice emojis
 const choiceEmojis = {
@@ -105,9 +142,86 @@ function resetGameState() {
     gameState.roundHistory = [];
 }
 
+// Validate and limit rounds input
+function validateRoundsInput() {
+    let rounds = parseInt(attemptsInput.value) || 5;
+    // Limit to maximum 10 rounds
+    if (rounds > 10) {
+        rounds = 10;
+        attemptsInput.value = 10;
+    }
+    return rounds;
+}
+
+// Generate cosmic ending message
+function getCosmicEndingMessage() {
+    const playerWon = gameState.playerScore > gameState.computerScore;
+    const isDraw = gameState.playerScore === gameState.computerScore;
+    
+    // Arrays of cosmic themed phrases
+    const intros = [
+        "The cosmic battle has concluded! ",
+        "As stardust settles across the universe, ",
+        "The celestial competition has reached its end! ",
+        "Written in the stars, your destiny is revealed: ",
+        "The galactic contest has reached its finale! "
+    ];
+    
+    const winPhrases = [
+        "You shine brighter than a supernova! The cosmos crowns YOU as champion!",
+        "Your cosmic energy has overwhelmed the digital entity! Victory is yours!",
+        "The stars aligned in your favor! You've conquered the digital cosmos!",
+        "Champion of the astral plane! Your stellar strategy prevailed!",
+        "Your cosmic power radiates through the universe! The AI bows to your superiority!"
+    ];
+    
+    const losePhrases = [
+        "The cosmic AI has harnessed the power of the universe against you!",
+        "The digital constellation outshined your cosmic strategy this time!",
+        "The stars favored your silicon opponent in this galactic contest!",
+        "The cosmic algorithm proved too powerful for this stellar battle!",
+        "Better luck in your next journey through the digital cosmos!"
+    ];
+    
+    const drawPhrases = [
+        "A perfect cosmic balance! Neither entity could overpower the other!",
+        "The stars couldn't decide a victor - your energies were perfectly matched!",
+        "A stellar stalemate across the digital universe!",
+        "The cosmic scales remain balanced - neither champion nor defeated!",
+        "Two forces in perfect harmony, like binary stars orbiting each other!"
+    ];
+    
+    // Pick random phrases
+    const intro = intros[Math.floor(Math.random() * intros.length)];
+    let outcome;
+    
+    if (isDraw) {
+        outcome = drawPhrases[Math.floor(Math.random() * drawPhrases.length)];
+    } else if (playerWon) {
+        outcome = winPhrases[Math.floor(Math.random() * winPhrases.length)];
+    } else {
+        outcome = losePhrases[Math.floor(Math.random() * losePhrases.length)];
+    }
+    
+    // Create message with twinkling star emojis
+    let message = intro + outcome;
+    
+    // Add twinkling stars
+    let messageWithStars = '';
+    const starEmojis = ['✨', '🌟', '💫', '⭐'];
+    
+    for (let i = 0; i < 3; i++) {
+        const starEmoji = starEmojis[Math.floor(Math.random() * starEmojis.length)];
+        const delay = Math.random() * 3;
+        messageWithStars += `<span class="star-emoji" style="--delay: ${delay}">${starEmoji}</span> `;
+    }
+    
+    return messageWithStars + message + ' ' + messageWithStars;
+}
+
 // Start game
 startBtn.addEventListener('click', () => {
-    gameState.totalRounds = parseInt(attemptsInput.value) || 5;
+    gameState.totalRounds = validateRoundsInput();
     resetGameState();
     
     // Update UI
@@ -182,34 +296,26 @@ choices.forEach(choice => {
         playerScoreDisplay.textContent = gameState.playerScore;
         computerScoreDisplay.textContent = gameState.computerScore;
         
-        // Disable choices
-        choices.forEach(c => c.style.pointerEvents = 'none');
-        
-        // Show next button or end the game
-        if (gameState.currentRound < gameState.totalRounds) {
-            nextBtn.style.display = 'block';
+        // Check if all rounds are complete
+        if (gameState.currentRound >= gameState.totalRounds) {
+            // Show results after 1 second so player can see the final round result
+            setTimeout(showResults, 1000);
         } else {
-            // Game over - show results after 1.5 seconds
-            setTimeout(showResults, 1500);
+            // Move to next round after 1 second
+            setTimeout(() => {
+                // Increment round
+                gameState.currentRound++;
+                currentRoundDisplay.textContent = gameState.currentRound;
+                
+                // Reset UI for next round
+                roundResult.textContent = '';
+                playerChoiceDisplay.textContent = '';
+                computerChoiceDisplay.textContent = '';
+                playerChoiceDisplay.className = 'player-choice';
+                computerChoiceDisplay.className = 'computer-choice';
+            }, 1000);
         }
     });
-});
-
-// Next round
-nextBtn.addEventListener('click', () => {
-    gameState.currentRound++;
-    currentRoundDisplay.textContent = gameState.currentRound;
-    
-    // Reset UI
-    roundResult.textContent = '';
-    playerChoiceDisplay.textContent = '';
-    computerChoiceDisplay.textContent = '';
-    playerChoiceDisplay.className = 'player-choice';
-    computerChoiceDisplay.className = 'computer-choice';
-    nextBtn.style.display = 'none';
-    
-    // Enable choices
-    choices.forEach(c => c.style.pointerEvents = 'auto');
 });
 
 // Play again
@@ -322,13 +428,30 @@ function showResults() {
         finalResult.style.color = '#FFC107';
     }
     
+    // Add cosmic ending message
+    cosmicMessageDisplay.innerHTML = getCosmicEndingMessage();
+    // Find the right place to insert the cosmic message
+    const statsSection = document.querySelector('.stats-grid') || document.querySelector('.stats');
+    if (statsSection && statsSection.parentNode) {
+        statsSection.parentNode.insertBefore(cosmicMessageDisplay, statsSection);
+    } else {
+        // Fallback: add to the result screen
+        resultScreen.appendChild(cosmicMessageDisplay);
+    }
+    
     // Show result screen
     gameScreen.style.display = 'none';
     resultScreen.style.display = 'block';
 }
 
+// Add input validation for max rounds
+attemptsInput.addEventListener('change', function() {
+    let value = parseInt(this.value) || 5;
+    // Enforce maximum of 10 rounds
+    if (value > 10) {
+        this.value = 10;
+    }
+});
+
 // Initialize
 createStars();
-
-// Enable choices
-choices.forEach(c => c.style.pointerEvents = 'auto');
