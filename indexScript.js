@@ -15,7 +15,10 @@ const gameState = {
         paper: 0,
         scissors: 0
     },
-    roundHistory: []
+    roundHistory: [],
+    hasSeenIntro: false,
+    comboCount: 0,
+    lastWinner: null
 };
 
 // DOM elements
@@ -50,6 +53,24 @@ const loseValue = document.getElementById('lose-value');
 const drawValue = document.getElementById('draw-value');
 const cosmicMessageDisplay = document.createElement('div');
 
+// Sound effects
+const sounds = {
+    click: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-mechanical-bling-210.mp3'),
+    win: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3'),
+    lose: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-retro-arcade-lose-2027.mp3'),
+    draw: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3'),
+    start: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-magical-sweep-transition-3132.mp3'),
+    finish: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-magic-sweep-game-trophy-257.mp3'),
+    combo: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-bonus-229.mp3')
+};
+
+// Try to preload sounds
+for (const sound in sounds) {
+    sounds[sound].load();
+    // Set volume
+    sounds[sound].volume = 0.5;
+}
+
 // Set up cosmic message element
 cosmicMessageDisplay.className = 'cosmic-message';
 cosmicMessageDisplay.style.fontSize = '1.3rem';
@@ -83,6 +104,41 @@ styleElement.textContent = `
   display: inline-block;
   animation: twinkle 1.5s infinite;
   animation-delay: calc(var(--delay) * 0.5s);
+}
+
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.choice {
+  animation: floating 3s ease-in-out infinite;
+}
+
+.choice:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.choice:nth-child(3) {
+  animation-delay: 1s;
+}
+
+.combo-text {
+  position: absolute;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ff9800;
+  text-shadow: 0 0 10px rgba(255, 152, 0, 0.8);
+  animation: combo-animation 1s forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes combo-animation {
+  0% { opacity: 0; transform: scale(0.5) translateY(0); }
+  50% { opacity: 1; transform: scale(1.2) translateY(-20px); }
+  100% { opacity: 0; transform: scale(1) translateY(-40px); }
 }
 `;
 document.head.appendChild(styleElement);
@@ -123,6 +179,35 @@ function createStars() {
     }
 }
 
+// Create shooting stars
+function createShootingStars() {
+    const shootingStarsCount = 5;
+    const container = document.querySelector('.stars');
+    
+    for (let i = 0; i < shootingStarsCount; i++) {
+        setTimeout(() => {
+            const shootingStar = document.createElement('div');
+            shootingStar.classList.add('shooting-star');
+            
+            // Random position and angle
+            const startX = Math.random() * 100;
+            const startY = Math.random() * 100;
+            const angle = Math.random() * 45 + 45; // 45-90 degrees
+            
+            shootingStar.style.left = `${startX}%`;
+            shootingStar.style.top = `${startY}%`;
+            shootingStar.style.transform = `rotate(${angle}deg)`;
+            
+            container.appendChild(shootingStar);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                shootingStar.remove();
+            }, 1000);
+        }, Math.random() * 10000); // Random timing within 10 seconds
+    }
+}
+
 // Reset game state
 function resetGameState() {
     gameState.currentRound = 1;
@@ -140,6 +225,8 @@ function resetGameState() {
         scissors: 0
     };
     gameState.roundHistory = [];
+    gameState.comboCount = 0;
+    gameState.lastWinner = null;
 }
 
 // Validate and limit rounds input
@@ -150,308 +237,25 @@ function validateRoundsInput() {
         rounds = 10;
         attemptsInput.value = 10;
     }
+    
+    // Minimum 1 round
+    if (rounds < 1) {
+        rounds = 1;
+        attemptsInput.value = 1;
+    }
+    
     return rounds;
 }
 
-// Generate cosmic ending message
-function getCosmicEndingMessage() {
-    const playerWon = gameState.playerScore > gameState.computerScore;
-    const isDraw = gameState.playerScore === gameState.computerScore;
+// Show combo text animation
+function showComboText() {
+    const comboText = document.createElement('div');
+    comboText.className = 'combo-text';
+    comboText.textContent = `${gameState.comboCount}x COMBO!`;
     
-    // Arrays of cosmic themed phrases
-    const intros = [
-        "The cosmic battle has concluded! ",
-        "As stardust settles across the universe, ",
-        "The celestial competition has reached its end! ",
-        "Written in the stars, your destiny is revealed: ",
-        "The galactic contest has reached its finale! "
-    ];
+    // Position near the player choice
+    const playerChoice = document.querySelector('.player-choice');
+    const rect = playerChoice.getBoundingClientRect();
     
-    const winPhrases = [
-        "You shine brighter than a supernova! The cosmos crowns YOU as champion!",
-        "Your cosmic energy has overwhelmed the digital entity! Victory is yours!",
-        "The stars aligned in your favor! You've conquered the digital cosmos!",
-        "Champion of the astral plane! Your stellar strategy prevailed!",
-        "Your cosmic power radiates through the universe! The AI bows to your superiority!"
-    ];
-    
-    const losePhrases = [
-        "The cosmic AI has harnessed the power of the universe against you!",
-        "The digital constellation outshined your cosmic strategy this time!",
-        "The stars favored your silicon opponent in this galactic contest!",
-        "The cosmic algorithm proved too powerful for this stellar battle!",
-        "Better luck in your next journey through the digital cosmos!"
-    ];
-    
-    const drawPhrases = [
-        "A perfect cosmic balance! Neither entity could overpower the other!",
-        "The stars couldn't decide a victor - your energies were perfectly matched!",
-        "A stellar stalemate across the digital universe!",
-        "The cosmic scales remain balanced - neither champion nor defeated!",
-        "Two forces in perfect harmony, like binary stars orbiting each other!"
-    ];
-    
-    // Pick random phrases
-    const intro = intros[Math.floor(Math.random() * intros.length)];
-    let outcome;
-    
-    if (isDraw) {
-        outcome = drawPhrases[Math.floor(Math.random() * drawPhrases.length)];
-    } else if (playerWon) {
-        outcome = winPhrases[Math.floor(Math.random() * winPhrases.length)];
-    } else {
-        outcome = losePhrases[Math.floor(Math.random() * losePhrases.length)];
-    }
-    
-    // Create message with twinkling star emojis
-    let message = intro + outcome;
-    
-    // Add twinkling stars
-    let messageWithStars = '';
-    const starEmojis = ['✨', '🌟', '💫', '⭐'];
-    
-    for (let i = 0; i < 3; i++) {
-        const starEmoji = starEmojis[Math.floor(Math.random() * starEmojis.length)];
-        const delay = Math.random() * 3;
-        messageWithStars += `<span class="star-emoji" style="--delay: ${delay}">${starEmoji}</span> `;
-    }
-    
-    return messageWithStars + message + ' ' + messageWithStars;
-}
-
-// Start game
-startBtn.addEventListener('click', () => {
-    gameState.totalRounds = validateRoundsInput();
-    resetGameState();
-    
-    // Update UI
-    totalRoundsDisplay.textContent = gameState.totalRounds;
-    currentRoundDisplay.textContent = gameState.currentRound;
-    playerScoreDisplay.textContent = gameState.playerScore;
-    computerScoreDisplay.textContent = gameState.computerScore;
-    
-    // Reset battle area
-    playerChoiceDisplay.textContent = '';
-    computerChoiceDisplay.textContent = '';
-    roundResult.textContent = '';
-    
-    // Show game screen
-    setupScreen.style.display = 'none';
-    gameScreen.style.display = 'block';
-    resultScreen.style.display = 'none';
-});
-
-// Player selects a choice
-choices.forEach(choice => {
-    choice.addEventListener('click', () => {
-        // Get player choice
-        const playerChoice = choice.dataset.choice;
-        
-        // Get computer choice
-        const choices = ['rock', 'paper', 'scissors'];
-        const computerChoice = choices[Math.floor(Math.random() * choices.length)];
-        
-        // Track choices
-        gameState.playerChoices[playerChoice]++;
-        gameState.computerChoices[computerChoice]++;
-        
-        // Display choices
-        playerChoiceDisplay.textContent = choiceEmojis[playerChoice];
-        computerChoiceDisplay.textContent = choiceEmojis[computerChoice];
-        
-        // Reset classes
-        playerChoiceDisplay.className = 'player-choice';
-        computerChoiceDisplay.className = 'computer-choice';
-        
-        // Determine the winner
-        const result = determineWinner(playerChoice, computerChoice);
-        
-        // Store round result
-        gameState.roundHistory.push({
-            round: gameState.currentRound,
-            playerChoice,
-            computerChoice,
-            result
-        });
-        
-        // Update UI based on result
-        if (result === 'win') {
-            roundResult.textContent = 'You win this round!';
-            playerChoiceDisplay.classList.add('winner');
-            computerChoiceDisplay.classList.add('loser');
-            gameState.playerScore++;
-        } else if (result === 'lose') {
-            roundResult.textContent = 'Computer wins this round!';
-            playerChoiceDisplay.classList.add('loser');
-            computerChoiceDisplay.classList.add('winner');
-            gameState.computerScore++;
-        } else {
-            roundResult.textContent = "It's a draw!";
-            playerChoiceDisplay.classList.add('draw');
-            computerChoiceDisplay.classList.add('draw');
-            gameState.draws++;
-        }
-        
-        // Update score
-        playerScoreDisplay.textContent = gameState.playerScore;
-        computerScoreDisplay.textContent = gameState.computerScore;
-        
-        // Check if all rounds are complete
-        if (gameState.currentRound >= gameState.totalRounds) {
-            // Show results after 1 second so player can see the final round result
-            setTimeout(showResults, 1000);
-        } else {
-            // Move to next round after 1 second
-            setTimeout(() => {
-                // Increment round
-                gameState.currentRound++;
-                currentRoundDisplay.textContent = gameState.currentRound;
-                
-                // Reset UI for next round
-                roundResult.textContent = '';
-                playerChoiceDisplay.textContent = '';
-                computerChoiceDisplay.textContent = '';
-                playerChoiceDisplay.className = 'player-choice';
-                computerChoiceDisplay.className = 'computer-choice';
-            }, 1000);
-        }
-    });
-});
-
-// Play again
-playAgainBtn.addEventListener('click', () => {
-    // Show setup screen
-    setupScreen.style.display = 'block';
-    gameScreen.style.display = 'none';
-    resultScreen.style.display = 'none';
-});
-
-// Determine the winner of a round
-function determineWinner(playerChoice, computerChoice) {
-    if (playerChoice === computerChoice) {
-        return 'draw';
-    }
-    
-    if (
-        (playerChoice === 'rock' && computerChoice === 'scissors') ||
-        (playerChoice === 'paper' && computerChoice === 'rock') ||
-        (playerChoice === 'scissors' && computerChoice === 'paper')
-    ) {
-        return 'win';
-    } else {
-        return 'lose';
-    }
-}
-
-// Show results screen
-function showResults() {
-    // Update stats
-    victoriesDisplay.textContent = gameState.playerScore;
-    defeatsDisplay.textContent = gameState.computerScore;
-    drawsDisplay.textContent = gameState.draws;
-    
-    // Calculate win rate
-    const winRate = (gameState.playerScore / gameState.totalRounds * 100).toFixed(1);
-    winRateDisplay.textContent = `${winRate}%`;
-    
-    // Update choice statistics
-    rockStatsDisplay.textContent = `Used: ${gameState.playerChoices.rock} times`;
-    paperStatsDisplay.textContent = `Used: ${gameState.playerChoices.paper} times`;
-    scissorsStatsDisplay.textContent = `Used: ${gameState.playerChoices.scissors} times`;
-    
-    // Create detailed summary
-    let mostUsedChoice = 'none';
-    let maxCount = 0;
-    for (const [choice, count] of Object.entries(gameState.playerChoices)) {
-        if (count > maxCount) {
-            maxCount = count;
-            mostUsedChoice = choice;
-        }
-    }
-    
-    // Generate summary text
-    let summaryText = `You played ${gameState.totalRounds} rounds against the computer. `;
-    
-    if (gameState.playerScore > gameState.computerScore) {
-        summaryText += `Congratulations! You won the battle with ${gameState.playerScore} victories versus ${gameState.computerScore} defeats. `;
-    } else if (gameState.playerScore < gameState.computerScore) {
-        summaryText += `Unfortunately, you lost the battle with ${gameState.playerScore} victories versus ${gameState.computerScore} defeats. `;
-    } else {
-        summaryText += `The battle ended in a draw with ${gameState.playerScore} victories each. `;
-    }
-    
-    if (maxCount > 0) {
-        summaryText += `Your favorite weapon was ${mostUsedChoice} which you used ${maxCount} times. `;
-    }
-    
-    // Add a fun fact
-    if (gameState.draws > gameState.totalRounds * 0.3) {
-        summaryText += "You had a high number of draws - great minds think alike!";
-    } else if (gameState.playerScore > gameState.totalRounds * 0.7) {
-        summaryText += "Wow! You dominated this game. You're a natural strategist!";
-    } else if (gameState.computerScore > gameState.totalRounds * 0.7) {
-        summaryText += "The computer was on fire today! Better luck next time!";
-    }
-    
-    resultDetailsDisplay.textContent = summaryText;
-    
-    // Update the bar chart
-    const maxHeight = 180; // Maximum height for bars
-    const maxValue = Math.max(gameState.playerScore, gameState.computerScore, gameState.draws);
-    
-    // Calculate heights based on values
-    const winHeight = maxValue > 0 ? (gameState.playerScore / maxValue) * maxHeight : 0;
-    const loseHeight = maxValue > 0 ? (gameState.computerScore / maxValue) * maxHeight : 0;
-    const drawHeight = maxValue > 0 ? (gameState.draws / maxValue) * maxHeight : 0;
-    
-    // Set chart values
-    winValue.textContent = gameState.playerScore;
-    loseValue.textContent = gameState.computerScore;
-    drawValue.textContent = gameState.draws;
-    
-    // Animate the bars
-    setTimeout(() => {
-        winBar.style.height = `${winHeight}px`;
-        loseBar.style.height = `${loseHeight}px`;
-        drawBar.style.height = `${drawHeight}px`;
-    }, 100);
-    
-    // Determine final result message
-    if (gameState.playerScore > gameState.computerScore) {
-        finalResult.textContent = '🏆 You Won the Battle! 🏆';
-        finalResult.style.color = '#4CAF50';
-    } else if (gameState.playerScore < gameState.computerScore) {
-        finalResult.textContent = '😢 You Lost the Battle! 😢';
-        finalResult.style.color = '#f44336';
-    } else {
-        finalResult.textContent = '🤝 The Battle Ended in a Draw! 🤝';
-        finalResult.style.color = '#FFC107';
-    }
-    
-    // Add cosmic ending message
-    cosmicMessageDisplay.innerHTML = getCosmicEndingMessage();
-    // Find the right place to insert the cosmic message
-    const statsSection = document.querySelector('.stats-grid') || document.querySelector('.stats');
-    if (statsSection && statsSection.parentNode) {
-        statsSection.parentNode.insertBefore(cosmicMessageDisplay, statsSection);
-    } else {
-        // Fallback: add to the result screen
-        resultScreen.appendChild(cosmicMessageDisplay);
-    }
-    
-    // Show result screen
-    gameScreen.style.display = 'none';
-    resultScreen.style.display = 'block';
-}
-
-// Add input validation for max rounds
-attemptsInput.addEventListener('change', function() {
-    let value = parseInt(this.value) || 5;
-    // Enforce maximum of 10 rounds
-    if (value > 10) {
-        this.value = 10;
-    }
-});
-
-// Initialize
-createStars();
+    comboText.style.left = `${rect.left + window.scrollX + rect.width/2 - 50}px`;
+    comboText.style.top = `${rect.top + window.scrollY -

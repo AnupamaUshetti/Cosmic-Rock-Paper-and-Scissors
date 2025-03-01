@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cosmic Rock Paper Scissors</title>
     <link rel="stylesheet" href="indexStyles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="stars"></div>
@@ -16,7 +19,8 @@
         <div class="setup-screen">
             <h2>How many rounds would you like to play?</h2>
             <div class="attempts-input">
-                <input type="number" id="attempts" min="1" max="20" value="5">
+                <input type="number" id="attempts" min="1" max="10" value="5">
+                <span class="max-rounds-info">(Max: 10 rounds)</span>
             </div>
             <button class="start-btn">Start the Battle</button>
         </div>
@@ -37,9 +41,15 @@
             </div>
             
             <div class="battle-area">
-                <div class="player-choice"></div>
+                <div class="player-side">
+                    <div class="player-label">You</div>
+                    <div class="player-choice"></div>
+                </div>
                 <div class="versus">VS</div>
-                <div class="computer-choice"></div>
+                <div class="computer-side">
+                    <div class="computer-label">AI</div>
+                    <div class="computer-choice"></div>
+                </div>
             </div>
             
             <div class="round-result"></div>
@@ -52,20 +62,66 @@
             <h2>Battle Results</h2>
             <div class="final-result">You Won!</div>
             
-            <div class="stats">
-                <div class="stat-box">
-                    <div>Victories</div>
-                    <div class="stat-value" id="victories">0</div>
+            <div class="stats-grid">
+                <div class="stats-section">
+                    <div class="stat-box">
+                        <div>Victories</div>
+                        <div class="stat-value" id="victories">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>Defeats</div>
+                        <div class="stat-value" id="defeats">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>Draws</div>
+                        <div class="stat-value" id="draws">0</div>
+                    </div>
                 </div>
-                <div class="stat-box">
-                    <div>Defeats</div>
-                    <div class="stat-value" id="defeats">0</div>
+                
+                <div class="win-rate-box">
+                    <div>Win Rate</div>
+                    <div class="stat-value" id="win-rate">0%</div>
                 </div>
-                <div class="stat-box">
-                    <div>Draws</div>
-                    <div class="stat-value" id="draws">0</div>
+                
+                <div class="choices-stats">
+                    <h3>Your Weapons</h3>
+                    <div class="choice-stat">
+                        <div class="choice-icon">🪨</div>
+                        <div id="rock-stats">Used: 0 times</div>
+                    </div>
+                    <div class="choice-stat">
+                        <div class="choice-icon">📄</div>
+                        <div id="paper-stats">Used: 0 times</div>
+                    </div>
+                    <div class="choice-stat">
+                        <div class="choice-icon">✂️</div>
+                        <div id="scissors-stats">Used: 0 times</div>
+                    </div>
+                </div>
+                
+                <div class="results-chart">
+                    <h3>Battle Chart</h3>
+                    <div class="chart-container">
+                        <div class="chart-bar-container">
+                            <div class="chart-bar win-bar" id="win-bar"></div>
+                            <div class="chart-value" id="win-value">0</div>
+                            <div class="chart-label">Wins</div>
+                        </div>
+                        <div class="chart-bar-container">
+                            <div class="chart-bar lose-bar" id="lose-bar"></div>
+                            <div class="chart-value" id="lose-value">0</div>
+                            <div class="chart-label">Loses</div>
+                        </div>
+                        <div class="chart-bar-container">
+                            <div class="chart-bar draw-bar" id="draw-bar"></div>
+                            <div class="chart-value" id="draw-value">0</div>
+                            <div class="chart-label">Draws</div>
+                        </div>
+                    </div>
                 </div>
             </div>
+            
+            <div class="result-details" id="result-details"></div>
             
             <button class="play-again-btn">Play Again</button>
         </div>
