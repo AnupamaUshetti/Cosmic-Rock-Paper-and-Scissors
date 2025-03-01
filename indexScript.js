@@ -379,146 +379,35 @@ function determineWinner(playerChoice, computerChoice) {
 // Handle player choice
 function handleChoice(choice) {
     // Disable choice buttons
-    choices.forEach(btn => {
-        btn.style.pointerEvents = 'none';
-    });
-    
-    // Update player choice stats
-    gameState.playerChoices[choice]++;
-    
+    choices.forEach(btn => btn.style.pointerEvents = 'none');
+
     // Get computer choice
     const computerChoice = getComputerChoice();
-    gameState.computerChoices[computerChoice]++;
-    
-    // Display choices
-    playerChoiceDisplay.textContent = choiceEmojis[choice];
-    computerChoiceDisplay.textContent = choiceEmojis[computerChoice];
-    
+
     // Determine winner
     const winner = determineWinner(choice, computerChoice);
-    
-    // Update combo count
-    if (winner === 'player') {
-        if (gameState.lastWinner === 'player') {
-            gameState.comboCount++;
-            if (gameState.comboCount >= 2) {
-                showComboText();
-            }
-        } else {
-            gameState.comboCount = 1;
-        }
-        gameState.lastWinner = 'player';
-    } else {
-        gameState.comboCount = 0;
-        gameState.lastWinner = winner;
-    }
-    
-    // Update scores
-    if (winner === 'player') {
-        gameState.playerScore++;
-        playerScoreDisplay.textContent = gameState.playerScore;
-        
-        // Apply winner/loser styling
-        playerChoiceDisplay.classList.add('winner');
-        computerChoiceDisplay.classList.add('loser');
-        
-        // Show win message
-        roundResult.textContent = "You won this round!";
-        roundResult.style.color = 'var(--win-color)';
-        
-        // Play win sound
-        sounds.win.play();
-    } else if (winner === 'computer') {
-        gameState.computerScore++;
-        computerScoreDisplay.textContent = gameState.computerScore;
-        
-        // Apply winner/loser styling
-        computerChoiceDisplay.classList.add('winner');
-        playerChoiceDisplay.classList.add('loser');
-        
-        // Show lose message
-        roundResult.textContent = "The AI won this round!";
-        roundResult.style.color = 'var(--lose-color)';
-        
-        // Play lose sound
-        sounds.lose.play();
-    } else {
-        gameState.draws++;
-        
-        // Apply draw styling
-        playerChoiceDisplay.classList.add('draw');
-        computerChoiceDisplay.classList.add('draw');
-        
-        // Show draw message
-        roundResult.textContent = "It's a draw!";
-        roundResult.style.color = 'var(--draw-color)';
-        
-        // Play draw sound
-        sounds.draw.play();
-    }
-    
+
     // Update round history
-    gameState.roundHistory.push({
-        round: gameState.currentRound,
-        playerChoice: choice,
-        computerChoice: computerChoice,
-        winner: winner
-    });
-    
-    // Show cosmic message based on result
-    if (winner === 'player') {
-        if (gameState.comboCount >= 3) {
-            showCosmicMessage("Cosmic combo mastery! The stars align in your favor!");
-        } else {
-            const messages = [
-                "The cosmic forces smile upon you!",
-                "Your cosmic energy overpowers the AI!",
-                "The stars align in your favor!",
-                "Your celestial strategy prevails!"
-            ];
-            showCosmicMessage(messages[Math.floor(Math.random() * messages.length)]);
-        }
-    } else if (winner === 'computer') {
-        const messages = [
-            "The AI's quantum calculations were superior this time...",
-            "The cosmic balance shifts to the AI!",
-            "The stars have momentarily abandoned you...",
-            "The AI tapped into dark cosmic energy!"
-        ];
-        showCosmicMessage(messages[Math.floor(Math.random() * messages.length)]);
-    } else {
-        const messages = [
-            "A cosmic stalemate! The universe is in balance.",
-            "Neither cosmic force prevails!",
-            "Perfect equilibrium between human and machine!",
-            "The cosmic scales are perfectly balanced."
-        ];
-        showCosmicMessage(messages[Math.floor(Math.random() * messages.length)]);
-    }
-    
-    // Show next button
-    nextBtn.style.display = 'block';
-    
-    // If last round, change button text
-    if (gameState.currentRound === gameState.totalRounds) {
-        nextBtn.textContent = "See Results";
-    }
-    
-    // Ensure the game does not prematurely end
+    gameState.roundHistory.push({ round: gameState.currentRound, playerChoice: choice, computerChoice: computerChoice, winner: winner });
+
+    // Update UI
+    playerChoiceDisplay.textContent = choiceEmojis[choice];
+    computerChoiceDisplay.textContent = choiceEmojis[computerChoice];
+
+    // Update round count correctly
     if (gameState.currentRound < gameState.totalRounds) {
-        gameState.currentRound++;
-        currentRoundDisplay.textContent = gameState.currentRound;
+        gameState.currentRound++; // Increment the round
     }
 
-    // Show next button
+    // Display next button
     nextBtn.style.display = 'block';
 
     // If last round, change button text
     if (gameState.currentRound >= gameState.totalRounds) {
         nextBtn.textContent = "See Results";
     }
-    
 }
+
 
 // Go to next round or show results
 function nextRound() {
@@ -526,13 +415,11 @@ function nextRound() {
     nextBtn.style.display = 'none';
 
     // Ensure the game properly transitions between rounds
-    if (gameState.currentRound >= gameState.totalRounds) {
+    if (gameState.currentRound > gameState.totalRounds) {
         showResults();
     } else {
         // Allow next round to proceed
-        choices.forEach(btn => {
-            btn.style.pointerEvents = 'auto';
-        });
+        choices.forEach(btn => btn.style.pointerEvents = 'auto');
 
         // Reset UI elements for the new round
         playerChoiceDisplay.textContent = '';
@@ -583,101 +470,13 @@ function showCosmicMessage(message) {
 function showResults() {
     // Play finish sound
     sounds.finish.play();
-    
+
     // Hide game screen, show result screen
     gameScreen.style.display = 'none';
     resultScreen.style.display = 'block';
-    
-    // Update stats
-    victoriesDisplay.textContent = gameState.playerScore;
-    defeatsDisplay.textContent = gameState.computerScore;
-    drawsDisplay.textContent = gameState.draws;
-    
-    // Calculate win rate
-    const winRate = gameState.totalRounds === 0 ? 0 : 
-        Math.round((gameState.playerScore / gameState.totalRounds) * 100);
-    winRateDisplay.textContent = `${winRate}%`;
-    
-    // Update choice stats
-    rockStatsDisplay.textContent = `Used: ${gameState.playerChoices.rock} times`;
-    paperStatsDisplay.textContent = `Used: ${gameState.playerChoices.paper} times`;
-    scissorsStatsDisplay.textContent = `Used: ${gameState.playerChoices.scissors} times`;
-    
-    // Set chart heights
-    const maxHeight = 150; // Maximum bar height in pixels
-    const maxValue = Math.max(gameState.playerScore, gameState.computerScore, gameState.draws);
-    
-    if (maxValue > 0) {
-        const winHeight = (gameState.playerScore / maxValue) * maxHeight;
-        const loseHeight = (gameState.computerScore / maxValue) * maxHeight;
-        const drawHeight = (gameState.draws / maxValue) * maxHeight;
-        
-        winBar.style.height = `${winHeight}px`;
-        loseBar.style.height = `${loseHeight}px`;
-        drawBar.style.height = `${drawHeight}px`;
-    }
-    
-    // Update chart values
-    winValue.textContent = gameState.playerScore;
-    loseValue.textContent = gameState.computerScore;
-    drawValue.textContent = gameState.draws;
-    
-    // Determine final result
-    let resultMessage;
-    if (gameState.playerScore > gameState.computerScore) {
-        resultMessage = "You Won the Cosmic Battle!";
-        finalResult.style.color = 'var(--win-color)';
-    } else if (gameState.playerScore < gameState.computerScore) {
-        resultMessage = "The AI Won the Cosmic Battle!";
-        finalResult.style.color = 'var(--lose-color)';
-    } else {
-        resultMessage = "The Cosmic Battle Ended in a Draw!";
-        finalResult.style.color = 'var(--draw-color)';
-    }
-    finalResult.textContent = resultMessage;
-    
-    // Generate result details
-    let detailsHTML = "<h3>Battle Analysis</h3>";
-    
-    // Add most used weapon
-    const mostUsedWeapon = Object.keys(gameState.playerChoices).reduce((a, b) => 
-        gameState.playerChoices[a] > gameState.playerChoices[b] ? a : b);
-    detailsHTML += `<p>Your favorite weapon was ${choiceEmojis[mostUsedWeapon]} (${mostUsedWeapon}).</p>`;
-    
-    // Add round by round details
-    detailsHTML += "<h3>Round by Round</h3>";
-    detailsHTML += "<ul>";
-    gameState.roundHistory.forEach((round, index) => {
-        const roundNum = index + 1;
-        const playerEmoji = choiceEmojis[round.playerChoice];
-        const computerEmoji = choiceEmojis[round.computerChoice];
-        let resultText;
-        
-        if (round.winner === 'player') {
-            resultText = `<span style="color: var(--win-color)">You won</span>`;
-        } else if (round.winner === 'computer') {
-            resultText = `<span style="color: var(--lose-color)">AI won</span>`;
-        } else {
-            resultText = `<span style="color: var(--draw-color)">Draw</span>`;
-        }
-        
-        detailsHTML += `<li>Round ${roundNum}: ${playerEmoji} vs ${computerEmoji} - ${resultText}</li>`;
-    });
-    detailsHTML += "</ul>";
-    
-    // Add cosmic analysis
-    detailsHTML += "<h3>Cosmic Analysis</h3>";
-    if (winRate >= 75) {
-        detailsHTML += "<p>The cosmos has chosen you as its champion! Your strategic prowess is off the charts!</p>";
-    } else if (winRate >= 50) {
-        detailsHTML += "<p>Your cosmic energy is strong! With more practice, you could become a legendary warrior.</p>";
-    } else if (winRate >= 25) {
-        detailsHTML += "<p>The stars see potential in you, but your cosmic strategies need refinement.</p>";
-    } else {
-        detailsHTML += "<p>Your cosmic energy is dormant. Fear not, with practice, you can unlock your true potential!</p>";
-    }
-    
-    resultDetailsDisplay.innerHTML = detailsHTML;
+
+    // Ensure the Play Again button is visible
+    playAgainBtn.style.display = 'block';
 }
 
 function playAgain() {
